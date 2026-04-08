@@ -5,11 +5,13 @@
   "description": "Captures text box inputs for the Pacific Context Graph",
   "permissions": [
     "activeTab",
+    "tabs",
     "scripting"
   ],
   "host_permissions": [
-    "http://127.0.0.1:8000/*",
-    "http://localhost:8000/*"
+    "https://pacific-context-bleed-firewall.onrender.com/*",
+    "http://127.0.0.1/*",
+    "http://localhost/*"
   ],
   "background": {
     "service_worker": "background.js"
