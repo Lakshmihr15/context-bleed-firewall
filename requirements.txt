@@ -1,0 +1,6 @@
+fastapi
+uvicorn[standard]
+pydantic
+cryptography
+sentence-transformers
+numpy

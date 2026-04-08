@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Omni-Library Context Engine | Pacific</title>
+  <link rel="stylesheet" href="/style.css?v=20260408">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <header>
+    <div class="logo-container">
+      <div class="logo-icon">P</div>
+      <div class="logo-text">Pacific Omni-Library Engine</div>
+    </div>
+    <div class="user-profile">
+      <span class="tag">Simulated Environment</span>
+    </div>
+  </header>
+
+  <main class="main-layout">
+    
+    <!-- LEFT PANEL: Context Permissions -->
+    <aside class="panel glass" id="permissions-panel">
+      <div class="panel-title"><i class="fa-solid fa-shield-halved"></i> Data Source Governance</div>
+      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+        Control which memory sources the AI agent can access to personalize the computing experience.
+      </p>
+
+      <div class="permission-item active" data-source="local_files">
+        <div>
+          <div style="font-weight: 500;">Local Documents</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">Emails, PDFs, Notes</div>
+        </div>
+        <div class="toggle-switch on" onclick="togglePermission(this.parentElement.parentElement)"></div>
+      </div>
+
+      <div class="permission-item active" data-source="cloud_drive">
+        <div>
+          <div style="font-weight: 500;">Cloud Storage</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">Corporate knowledge base</div>
+        </div>
+        <div class="toggle-switch on" onclick="togglePermission(this.parentElement.parentElement)"></div>
+      </div>
+
+      <div class="permission-item denied" data-source="financial_db">
+        <div>
+          <div style="font-weight: 500;">Financial Systems</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">Strictly confidential</div>
+        </div>
+        <div class="toggle-switch" onclick="togglePermission(this.parentElement.parentElement)"></div>
+      </div>
+      
+      <div class="permission-item active" data-source="web_search">
+        <div>
+          <div style="font-weight: 500;">Live Web Search</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">Real-time knowledge</div>
+        </div>
+        <div class="toggle-switch on" onclick="togglePermission(this.parentElement.parentElement)"></div>
+      </div>
+
+      <div style="margin-top: auto;">
+        <div class="panel-title"><i class="fa-solid fa-compress"></i> Context Policy</div>
+        <div style="font-size: 0.85rem; color: var(--text-main); margin-top: 0.5rem;">
+          <input type="checkbox" id="auto-prune" checked style="margin-right:0.5rem; accent-color: var(--primary)"> Semantic Context Pruning
+        </div>
+        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; margin-left: 1.5rem;">
+          Automatically compress retrieved documents to optimize TTFT without losing critical facts.
+        </p>
+      </div>
+
+    </aside>
+
+    <!-- CENTER PANEL: Agent Execution & Workflow -->
+    <section class="center-column">
+      <div class="search-bar-container glass" style="padding: 0.5rem; align-items: center;">
+        <i class="fa-solid fa-sparkles" style="color: var(--primary); margin-left: 1rem; font-size: 1.2rem;"></i>
+        <input type="text" id="prompt-input" class="search-input" style="border: none; background: transparent; padding: 0.5rem 1rem;" placeholder="E.g., Summarize Q1 metrics and compare them to my local roadmap note..." value="Summarize our Q1 revenue from the financial system and align it with the project roadmap in my Cloud Drive.">
+        <button class="btn-run" id="run-btn" onclick="startWorkflow()">Execute</button>
+      </div>
+
+      <div class="panel glass pipeline-viz" id="pipeline-container">
+        <!-- Dynamic pipeline steps injected here -->
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--text-muted); text-align: center;" id="empty-state">
+          <i class="fa-solid fa-bolt" style="font-size: 2rem; opacity: 0.5; margin-bottom: 1rem;"></i>
+          <p>Ready to process intent.<br>Context Engine idle.</p>
+        </div>
+      </div>
+
+      <div class="output-area glass" id="final-output" style="display: none;"></div>
+
+    </section>
+
+    <!-- RIGHT PANEL: Evaluation & TTFT -->
+    <aside class="panel glass" id="eval-panel">
+      <div class="panel-title"><i class="fa-solid fa-chart-simple"></i> Telemetry & Evals</div>
+      
+      <div class="stat-card">
+        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Est. Time To First Token (TTFT)</div>
+        <div class="stat-value" id="ttft-val">-- ms</div>
+        <div style="font-size: 0.7rem; color: var(--accent);" id="ttft-delta">Awaiting execution</div>
+      </div>
+
+      <div class="stat-card">
+        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Context Token Cost</div>
+        <div style="font-size: 1.25rem; font-weight: 600;" id="token-val">--</div>
+        <div class="progress-bar" style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-top: 0.5rem; overflow: hidden;">
+          <div id="token-bar" style="height: 100%; width: 0%; background: var(--primary); transition: width 0.5s;"></div>
+        </div>
+      </div>
+
+      <div class="stat-card graph-card">
+        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Graph Memory</div>
+        <div class="graph-metric" id="graph-inputs">0 captured inputs</div>
+        <div style="font-size: 0.8rem; color: var(--text-muted);" id="graph-ratio">0% relatable</div>
+        <div class="progress-bar" style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-top: 0.5rem; overflow: hidden;">
+          <div id="graph-bar" style="height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--primary)); transition: width 0.5s;"></div>
+        </div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;" id="graph-tokens">Token compression pending</div>
+      </div>
+
+      <div class="stat-card summary-card">
+        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Backend Summary</div>
+        <pre id="graph-summary-json" class="summary-json">Loading summary...</pre>
+      </div>
+
+      <div style="margin-top: 1rem;">
+        <div class="panel-title">Workflow Eval Scores</div>
+        <div class="eval-chart">
+          <div class="bar" id="eval-relevance" style="height: 5%;" data-label="Relevance"></div>
+          <div class="bar" id="eval-safety" style="height: 5%;" data-label="Safety"></div>
+          <div class="bar" id="eval-speed" style="height: 5%;" data-label="Speed"></div>
+        </div>
+      </div>
+
+    </aside>
+
+  </main>
+
+  <script src="/app.js?v=20260408"></script>
+</body>
+</html>
