@@ -169,11 +169,19 @@ function isGraphSummaryRequest(query) {
   return /(?:graph\s+summary|grapgh\s+summary|summary\s+of\s+graph|summarize\s+graph|show\s+graph\s+summary|full\s+summary|give\s+me\s+graph\s+summary|summarize\s+the\s+graph)/i.test(query);
 }
 
+function isCapturedInputNode(node) {
+  if (!node) return false;
+  if (node.type === 'chrome_input') return true;
+  if (node.type !== 'memory_evidence') return false;
+  const fieldType = node.metadata?.field_type || node.source?.field_type;
+  return node.legacy_type === 'chrome_input' || Boolean(fieldType);
+}
+
 function formatBackendSummary(summary, snapshot) {
   const totals = summary?.totals || {};
   const topicBuckets = Array.isArray(summary?.topic_buckets) ? summary.topic_buckets : [];
   const recentInputs = Array.isArray(snapshot?.nodes)
-    ? snapshot.nodes.filter((node) => node?.type === 'chrome_input').slice(-5).reverse()
+    ? snapshot.nodes.filter((node) => isCapturedInputNode(node)).slice(-5).reverse()
     : [];
 
   const topicLines = topicBuckets.length > 0
@@ -237,7 +245,7 @@ function buildFinalResponse(summary, snapshot, relevanceScore, query) {
   const totalInputs = summary?.total_inputs || 0;
   const topicBuckets = Array.isArray(summary?.topic_buckets) ? summary.topic_buckets : [];
   const inputNodes = Array.isArray(snapshot?.nodes)
-    ? snapshot.nodes.filter((node) => node?.type === 'chrome_input')
+    ? snapshot.nodes.filter((node) => isCapturedInputNode(node))
     : [];
   const recentInputs = inputNodes.slice(-3).reverse();
 

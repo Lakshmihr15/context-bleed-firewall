@@ -17,3 +17,6 @@ interaction_graph.json
 *.sqlite3
 dist/
 build/
+.env
+.env.*
+!.env.example

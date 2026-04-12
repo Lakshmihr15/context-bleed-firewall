@@ -3,24 +3,32 @@
 
 const LOCAL_SERVER_URL = "http://127.0.0.1:8000/chrome_input";
 const DEFAULT_SERVER_URL = "https://pacific-context-bleed-firewall.onrender.com/chrome_input";
-const SEARCH_HOSTS = new Set([
-  "www.google.com",
-  "google.com",
-  "www.bing.com",
-  "bing.com",
-  "search.yahoo.com",
-  "duckduckgo.com",
-  "www.duckduckgo.com",
-  "search.brave.com",
-  "www.startpage.com"
-]);
+const SEARCH_HOST_PATTERNS = [
+  /(^|\.)google\.[a-z.]+$/i,
+  /(^|\.)bing\.com$/i,
+  /(^|\.)search\.yahoo\.com$/i,
+  /(^|\.)duckduckgo\.com$/i,
+  /(^|\.)search\.brave\.com$/i,
+  /(^|\.)startpage\.com$/i
+];
 
 const lastSearchSignatureByTab = new Map();
+
+// Logging helper
+function logExtension(message, data = null) {
+  const timestamp = new Date().toISOString();
+  console.log(`[Pacific Extension ${timestamp}] ${message}`, data || "");
+}
+
+function isSupportedSearchHost(hostname) {
+  const host = (hostname || "").toLowerCase();
+  return SEARCH_HOST_PATTERNS.some((pattern) => pattern.test(host));
+}
 
 function extractSearchQuery(urlString) {
   try {
     const url = new URL(urlString);
-    if (!SEARCH_HOSTS.has(url.hostname)) {
+    if (!isSupportedSearchHost(url.hostname)) {
       return "";
     }
 
@@ -39,6 +47,7 @@ function extractSearchQuery(urlString) {
       }
     }
   } catch (error) {
+    logExtension("Error extracting search query:", error);
     return "";
   }
 
@@ -54,15 +63,21 @@ function postCapturedInput(payload) {
     body: JSON.stringify(payload)
   };
 
+  logExtension("Sending to local server:", LOCAL_SERVER_URL);
+  logExtension("Payload:", payload);
+
   return fetch(LOCAL_SERVER_URL, requestOptions)
     .then((response) => {
+      logExtension("Local server response status:", response.status);
       if (!response.ok) {
         throw new Error(`Local server returned ${response.status}`);
       }
       return response.json();
     })
-    .catch(() => {
+    .catch((error) => {
+      logExtension("Local server error, trying remote:", error);
       return fetch(DEFAULT_SERVER_URL, requestOptions).then((response) => {
+        logExtension("Remote server response status:", response.status);
         if (!response.ok) {
           throw new Error(`Remote server returned ${response.status}`);
         }
@@ -74,14 +89,18 @@ function postCapturedInput(payload) {
 function logSearchQuery(tabId, url, title) {
   const query = extractSearchQuery(url);
   if (!query) {
+    logExtension(`Tab ${tabId}: No search query extracted from ${url}`);
     return;
   }
 
   const signature = `${tabId}:${query}:${url}`;
   if (lastSearchSignatureByTab.get(tabId) === signature) {
+    logExtension(`Tab ${tabId}: Duplicate signature, skipping`);
     return;
   }
   lastSearchSignatureByTab.set(tabId, signature);
+
+  logExtension(`Tab ${tabId}: Captured search query: "${query}"`);
 
   postCapturedInput({
     tab_id: tabId.toString(),
@@ -91,11 +110,14 @@ function logSearchQuery(tabId, url, title) {
     page_url: url,
     heading: "Chrome Search",
     field_type: "search"
-  }).catch((error) => console.error("Error logging search query:", error));
+  }).catch((error) => logExtension("Error logging search query:", error));
 }
+
+logExtension("Extension loaded successfully");
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "INPUT_CAPTURED") {
+    logExtension("Received INPUT_CAPTURED message from content script");
     const tabId = sender.tab ? sender.tab.id.toString() : "unknown_tab";
     const payload = message.payload;
     // Prefer the local graph first so development runs update the local UI.
@@ -108,8 +130,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       heading: payload.heading,
       field_type: payload.field_type
     })
-      .then((data) => console.log("Successfully logged input to Pacific Context Engine", data))
-      .catch((error) => console.error("Error logging input:", error));
+      .then((data) => logExtension("Successfully logged input to Pacific Context Engine", data))
+      .catch((error) => logExtension("Error logging input:", error));
   }
 });
 
@@ -117,5 +139,6 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status !== "complete" || !tab || !tab.url) {
     return;
   }
+  logExtension(`Tab ${tabId} updated: ${changeInfo.status}`);
   logSearchQuery(tabId, tab.url, tab.title || "Search Results");
 });
